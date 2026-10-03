@@ -48,7 +48,7 @@ def load_dataset(config_path):
         inventory[split]={'observations':len(df),'services':int(df.service_instance_id.nunique()),'positives':int(df.label.sum()),'sha256':entry['sha256'],'first_date':str(df.data_as_of_ts.min()),'last_date':str(df.data_as_of_ts.max())}
         frames[split]=df
     if set(frames['train'].training_observation_id)&set(frames['validation'].training_observation_id): raise ValueError('Train/validation observation overlap')
-    if frames['train'].data_as_of_ts.max()+pd.Timedelta(days=30)>frames['validation'].data_as_of_ts.min(): raise ValueError('Training labels do not mature before validation cutoff')
+    if pd.Timestamp(frames['train'].data_as_of_ts.max())+pd.Timedelta(days=30)>pd.Timestamp(frames['validation'].data_as_of_ts.min()): raise ValueError('Training labels do not mature before validation cutoff')
     # Held-out service membership must be supplied separately, never inferred from OOT features or truth.
     held=cfg.get('heldout_service_ids')
     if not held: raise ValueError('Provide reserved-service exclusion manifest')
