@@ -1,0 +1,10 @@
+{
+  "purpose": "historical_development",
+  "source_path": "/absolute/path/historical_source.zip",
+  "source_sha256": "REPLACE_WITH_VERIFIED_SOURCE_HASH",
+  "feature_corrections_verified": false,
+  "evidence_reference": "",
+  "train": {"path": "/absolute/path/COM01_train.csv", "sha256": "REPLACE"},
+  "validation": {"path": "/absolute/path/COM01_validation.csv", "sha256": "REPLACE"},
+  "heldout_service_ids": {"path": "/absolute/path/reserved_service_ids.json", "sha256": "REPLACE"}
+}
