@@ -5,6 +5,12 @@ import numpy as np,pandas as pd
 from sklearn.linear_model import LogisticRegression
 from engine import portable_model,connect,push
 class AdminChecks(unittest.TestCase):
+ def test_empty_exception_is_visible_and_persisted(self):
+  from admin_server import Admin
+  with tempfile.TemporaryDirectory() as tmp:
+   admin=Admin.__new__(Admin);admin.root=Path(tmp);admin.data=Path(tmp);run={'id':'failure','status':'RUNNING','log':[]}
+   with patch('admin_server.verified_training.run',side_effect=AssertionError()):admin.train(run)
+   self.assertEqual(run['status'],'FAILED');self.assertIn('AssertionError',run['stage']);self.assertIn('AssertionError',run['log'][0]);self.assertTrue((Path(tmp)/'failure/run.json').exists())
  def test_portable_calibrated_probability(self):
   from scipy.special import logit
   x=pd.DataFrame({'a':np.arange(20)});y=np.array([0,1]*10);base=LogisticRegression().fit(x,y);raw=base.predict_proba(x)[:,1];cal=LogisticRegression().fit(logit(raw).reshape(-1,1),y)
