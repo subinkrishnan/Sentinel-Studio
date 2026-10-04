@@ -52,7 +52,12 @@ def build_plan(data_dir):
             raise ValueError('Experimental table name exceeds PostgreSQL identifier limit')
         plan['tables'].append({
             'name': name,
-            'columns': [{'name': c, 'dtype': 'text'} for c in source['columns']],
+            # The engine owns source_system. Preserve the original payload value
+            # separately; later ingestion must apply this explicit mapping.
+            'payload_column_map': {'source_system': 'upstream_source_system'}
+                                  if 'source_system' in source['columns'] else {},
+            'columns': [{'name': ('upstream_source_system' if c == 'source_system' else c),
+                         'dtype': 'text'} for c in source['columns']],
             'title': 'COM01 v0.5 experiment: ' + source['name'],
             'description': ('Isolated synthetic development data. Source gzip SHA256 '
                             + source['sha256'] + '; rows ' + str(source['rows'])
@@ -63,11 +68,35 @@ def build_plan(data_dir):
     return plan
 
 
-def submit(client, plan, output, credentials=()):
+def sdk_status(entry):
+    response = entry.get('sdk_response')
+    if not isinstance(response, list) or len(response) != 1:
+        return 'unknown'
+    return response[0].get('status', 'unknown')
+
+
+def submit(client, plan, output, credentials=(), previous=None):
     report = {k: v for k, v in plan.items() if k != 'tables'}
     report['operation'] = 'MAKER_SCHEMA_SUBMISSION_ONLY'
     report['responses'] = []
+    old = {}
+    if previous is not None:
+        if previous.get('manifest_sha256') != plan['manifest_sha256']:
+            raise ValueError('Previous submission belongs to another source manifest')
+        old = {entry['name']: entry for entry in previous['responses']}
+        if set(old) != {table['name'] for table in plan['tables']}:
+            raise ValueError('Previous submission has a different table inventory')
     for table in plan['tables']:
+        if table['name'] in old:
+            earlier = old[table['name']]
+            status = sdk_status(earlier)
+            if status in ('submitted', 'provisioned'):
+                report['responses'].append(earlier)
+                output.write_text(json.dumps(report, indent=2, default=str) + '\n')
+                print(table['name'] + ': retained ' + status + '; no API write', flush=True)
+                continue
+            if status != 'error' and 'error' not in earlier:
+                raise ValueError('Cannot safely retry unknown SDK status for ' + table['name'])
         spec = {k: table[k] for k in ('name', 'columns', 'title', 'description')}
         try:
             # No checker and no records: SDK creates/submits schemas only.
@@ -78,7 +107,7 @@ def submit(client, plan, output, credentials=()):
                     serialized = serialized.replace(credential, '[REDACTED]')
             response = json.loads(serialized)
             entry = {'name': table['name'], 'sdk_response': response}
-            print(table['name'] + ': onboarding response received', flush=True)
+            print(table['name'] + ': ' + sdk_status(entry), flush=True)
         except Exception as exc:
             entry = {'name': table['name'], 'error': safe_error(exc, credentials)}
             report['responses'].append(entry)
@@ -87,8 +116,12 @@ def submit(client, plan, output, credentials=()):
                                + entry['error']) from None
         report['responses'].append(entry)
         output.write_text(json.dumps(report, indent=2, default=str) + '\n')
-    print('Schema submission requests finished. Review SDK responses for each table.')
+    errors = sum(sdk_status(entry) not in ('submitted', 'provisioned')
+                 for entry in report['responses'])
+    print('Schema submission requests finished. Unresolved responses: ' + str(errors))
     print('A different checker identity must provision tables before ingestion.')
+    if errors:
+        raise RuntimeError('Some schemas were not submitted; inspect the saved SDK responses')
     return report
 
 
@@ -97,9 +130,20 @@ def main():
     p.add_argument('--data-dir', type=Path, required=True)
     p.add_argument('--output-dir', type=Path, required=True)
     p.add_argument('--submit', action='store_true', help='Submit experimental schemas as maker')
+    p.add_argument('--retry-failed', action='store_true',
+                   help='Keep submitted IDs and retry only failures in the previous report')
     args = p.parse_args()
     plan = build_plan(args.data_dir)
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    previous = None
+    if args.retry_failed:
+        if not args.submit:
+            raise SystemExit('--retry-failed requires --submit')
+        status_path = args.output_dir / 'source-onboarding-status.json'
+        previous = json.loads(status_path.read_text())
+        backup = args.output_dir / 'source-onboarding-status.before-retry.json'
+        if not backup.exists():
+            backup.write_text(json.dumps(previous, indent=2) + '\n')
     (args.output_dir / 'source-onboarding-plan.json').write_text(json.dumps(plan, indent=2) + '\n')
     print('13 source checksums and CSV headers: PASS')
     print('Experimental namespace: ' + plan['namespace'])
@@ -116,7 +160,8 @@ def main():
     try:
         if client.query('SELECT 1 AS ok') != [{'ok': 1}]:
             raise ValueError('Unexpected connection response')
-        submit(client, plan, args.output_dir / 'source-onboarding-status.json', (cid, secret))
+        submit(client, plan, args.output_dir / 'source-onboarding-status.json',
+               (cid, secret), previous)
     except Exception as exc:
         raise SystemExit(safe_error(exc, (cid, secret))) from None
     print('Report: ' + str(args.output_dir / 'source-onboarding-status.json'))
