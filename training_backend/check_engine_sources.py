@@ -6,18 +6,32 @@ import re
 from pathlib import Path
 
 
-def inspect_sources(client, manifest):
+def safe_error(exc, credentials=()):
+    message = str(exc)
+    for value in credentials:
+        if value:
+            message = message.replace(value, '[REDACTED]')
+    message = re.sub(r'[A-Za-z0-9_+/=.-]{24,}', '[REDACTED]', message)
+    return type(exc).__name__ + ': ' + message[:800]
+
+
+def inspect_sources(client, manifest, credentials=()):
     sources = manifest['sources']
     for source in sources:
         if not re.fullmatch(r'tmform_[a-z0-9_]+', source['name']):
             raise ValueError('Unexpected source table name in local manifest')
-    columns = client.query("""
+    metadata_error = None
+    try:
+        columns = client.query("""
         SELECT table_name, column_name, data_type
         FROM information_schema.columns
         WHERE table_schema = 'public'
           AND table_name LIKE 'bronze%'
         ORDER BY table_name, ordinal_position
-    """)
+        """)
+    except Exception as exc:
+        columns = []
+        metadata_error = safe_error(exc, credentials)
     schema = {}
     for row in columns:
         schema.setdefault(row['table_name'], {})[row['column_name']] = row['data_type']
@@ -27,31 +41,47 @@ def inspect_sources(client, manifest):
         'source_identity': 'UNVERIFIED: matching counts do not prove identical contents',
         'blind_or_reserved_evaluated': False,
         'model_staged': False,
+        'metadata_rows_returned': len(columns),
+        'metadata_error': metadata_error,
         'sources': [],
     }
     for source in sources:
         name = 'bronze__' + source['name']
-        entry = {'table': name, 'local_rows': source['rows'], 'exists': name in schema}
-        entry['missing_columns'] = sorted(set(source['columns']) - set(schema.get(name, {})))
-        if entry['exists']:
-            try:
-                rows = client.query('SELECT COUNT(*) AS row_count FROM public.' + name)
-                entry['engine_rows'] = int(rows[0]['row_count'])
-                entry['row_count_matches'] = entry['engine_rows'] == entry['local_rows']
-            except Exception as exc:
-                # Only the error class is retained; SDK messages can contain sensitive context.
-                entry['count_error_type'] = type(exc).__name__
+        entry = {'table': name, 'local_rows': source['rows'],
+                 'exists': True if name in schema else None,
+                 'metadata_visible': name in schema}
+        entry['missing_columns'] = (sorted(set(source['columns']) - set(schema[name]))
+                                    if name in schema else None)
+        # information_schema can hide tables visible through an approved gateway.
+        # Test access directly even when metadata is absent; never infer absence.
+        try:
+            rows = client.query('SELECT COUNT(*) AS row_count FROM public.' + name)
+            entry['engine_rows'] = int(rows[0]['row_count'])
+            entry['exists'] = True
+            entry['row_count_matches'] = entry['engine_rows'] == entry['local_rows']
+            entry['direct_read_status'] = 'PASS'
+        except Exception as exc:
+            entry['direct_read_status'] = 'FAILED_OR_DENIED'
+            entry['count_error'] = safe_error(exc, credentials)
         report['sources'].append(entry)
         print(name + ': engine=' + str(entry.get('engine_rows', 'unavailable'))
               + ' local=' + str(entry['local_rows'])
-              + ' missing_columns=' + str(len(entry['missing_columns'])), flush=True)
+              + ' schema=' + ('visible' if entry['metadata_visible'] else 'unavailable')
+              + ' access=' + entry['direct_read_status'], flush=True)
+        if entry.get('count_error'):
+            print('  ' + entry['count_error'], flush=True)
     report['schema_and_counts_match'] = all(
-        x['exists'] and not x['missing_columns'] and x.get('row_count_matches', False)
+        x['metadata_visible'] and not x['missing_columns'] and x.get('row_count_matches', False)
         for x in report['sources']
     )
-    report['next_gate'] = ('CONTENT_IDENTITY_AND_FEATURE_PARITY_REQUIRED'
-                           if report['schema_and_counts_match']
-                           else 'SOURCE_PACKAGE_OR_SCHEMA_ALIGNMENT_REQUIRED')
+    if any(x['direct_read_status'] != 'PASS' for x in report['sources']):
+        report['next_gate'] = 'SOURCE_ACCESS_OR_TABLE_RESOLUTION_REQUIRED'
+    elif any(not x['row_count_matches'] for x in report['sources']):
+        report['next_gate'] = 'SOURCE_POPULATION_DIFFERENCE_REQUIRES_RECONCILIATION'
+    elif not report['schema_and_counts_match']:
+        report['next_gate'] = 'SOURCE_SCHEMA_VERIFICATION_REQUIRED'
+    else:
+        report['next_gate'] = 'CONTENT_IDENTITY_AND_FEATURE_PARITY_REQUIRED'
     return report
 
 
@@ -71,7 +101,7 @@ def main():
         if client.query('SELECT 1 AS ok') != [{'ok': 1}]:
             raise ValueError('Unexpected connection response')
         print('Connection: PASS. Checking 13 source tables; no scoring or writes.', flush=True)
-        report = inspect_sources(client, manifest)
+        report = inspect_sources(client, manifest, (cid, secret))
     except Exception as exc:
         raise SystemExit('Diagnostic stopped: ' + type(exc).__name__
                          + '. Credentials and raw error details were not saved.') from None
