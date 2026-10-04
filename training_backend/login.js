@@ -1,0 +1,1 @@
+document.querySelector('#login').onsubmit=async e=>{e.preventDefault();const input=document.querySelector('#token');const r=await fetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:input.value})});input.value='';if(r.ok)location.reload();else document.querySelector('#error').textContent='Sign-in failed';};

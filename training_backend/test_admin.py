@@ -1,0 +1,20 @@
+import unittest,tempfile,os
+from unittest.mock import patch
+from pathlib import Path
+import numpy as np,pandas as pd
+from sklearn.linear_model import LogisticRegression
+from engine import portable_model,connect,push
+class AdminChecks(unittest.TestCase):
+ def test_portable_calibrated_probability(self):
+  from scipy.special import logit
+  x=pd.DataFrame({'a':np.arange(20)});y=np.array([0,1]*10);base=LogisticRegression().fit(x,y);raw=base.predict_proba(x)[:,1];cal=LogisticRegression().fit(logit(raw).reshape(-1,1),y)
+  a={'model':base,'calibrator':cal};np.testing.assert_allclose(portable_model(a).predict_proba(x)[:,1],cal.predict_proba(logit(raw).reshape(-1,1))[:,1],atol=1e-7)
+ def test_missing_engine_credentials_blocks(self):
+  with patch.dict(os.environ,{},clear=True),self.assertRaisesRegex(ValueError,'credentials'):connect()
+ def test_production_origin_rejected(self):
+  with patch.dict(os.environ,{'SENTINEL_BASE_URL':'https://sentinel.inalpha.ai'},clear=True),self.assertRaisesRegex(ValueError,'Dev'):connect()
+ def test_existing_model_not_overwritten(self):
+  with self.assertRaisesRegex(ValueError,'separate'):push(Path('x'),'newchurn10','v1.0.0','SELECT * FROM silver__x',{})
+ def test_unreviewed_sql_blocks(self):
+  with self.assertRaisesRegex(ValueError,'Silver'):push(Path('x'),'com01_experiment_test','v0.5.0','',{})
+if __name__=='__main__':unittest.main()

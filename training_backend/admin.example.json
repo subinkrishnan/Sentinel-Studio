@@ -1,0 +1,4 @@
+{
+  "data_dir": "/absolute/path/COM01_v05_Workflow/COM01_Development_Benchmark_v05_COMPLETE",
+  "staging": {"name":"com01_experiment_postpaid", "version":"v0.5.0", "feature_sql":""}
+}
