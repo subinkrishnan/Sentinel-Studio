@@ -1,5 +1,5 @@
 """Authenticated, loopback-only postpaid admin service; no automatic publication."""
-import argparse,json,os,secrets,threading,time,uuid
+import argparse,json,os,secrets,threading,time,uuid,traceback
 from pathlib import Path
 from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
@@ -35,12 +35,16 @@ class Admin:
   try:
    d=self.root/r['id'];verified_training.run(self.data,d/'results')
    from verify_results_v05 import run as verify
+   r['stage']='Verifying saved model predictions';self.save(r)
    verify(self.data,d/'results')
    result=json.loads((d/'results/evaluation.json').read_text());r['metrics']=[{'model':name,**m['classification'],'baseline_accuracy':m['no_churn_accuracy'],'top10':m['campaign_top10pct']} for name,m in result.items()]
    for name in result:
+    r['stage']='Exporting calibrated serving model '+name;self.save(r)
     portable=d/'results'/(name+'_serving.joblib');parity=engine.export_model(d/'results'/(name+'.joblib'),self.data/'COM01_validation.csv',portable);(d/'results'/(name+'_serving_parity.json')).write_text(json.dumps(parity,indent=2))
    r['artifacts']=[{'name':p.name,'sha256':sha(p)} for p in sorted((d/'results').iterdir()) if p.is_file()];r.update(status='COMPLETED',stage='Four models, reload checks and calibrated serving exports completed')
-  except Exception as e:r.update(status='FAILED',stage=str(e))
+  except Exception as e:
+   r.update(status='FAILED',stage=type(e).__name__+': '+(str(e) or 'See diagnostic traceback below'))
+   r.setdefault('log',[]).append(traceback.format_exc())
   self.save(r)
  def artifact(self,rid,name):
   r=self.runs.get(rid,{})
