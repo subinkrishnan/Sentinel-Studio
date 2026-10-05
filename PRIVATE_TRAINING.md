@@ -44,3 +44,13 @@ After updating this branch, start `admin_server.py` with your existing config, a
 For the current Mac setup using port 8767, open `http://127.0.0.1:8767/`. Update/restart only the Studio service. Leave the independent source uploader terminal running. Do not change its checkpoints or source namespace. Existing artifact directories are reused.
 
 Static hosting cannot run the Python service: the Training preview shows a disconnected state and disables actions. Executive reports and Ask Pulse still use synthetic demo data. This change integrates the training console, not live Mart consumption or model publication. Sentinel credentials remain in the service environment; Dev staging uses the existing verified export and reviewed Silver query checks.
+
+## Mac restart helper
+
+If the running service uses an older token, exit any Python prompt with Ctrl+D, pull this branch and run:
+
+```sh
+"$HOME/Downloads/Sentinel-Studio-main/.venv/bin/python" "$HOME/Downloads/Sentinel-COM01-Admin/training_backend/restart_studio.py" --expected-pid YOUR_STUDIO_PID
+```
+
+The helper reads the existing local.admin.json, finds run folders in the COM01 local directory, checkout and home/local-artifacts, and refuses ambiguous folders or runs marked RUNNING. Use --artifacts to specify a known existing folder if needed. It verifies the expected listener is Python serving the COM01/Studio token sign-in page before sending SIGTERM only to that PID. It does not stop the source uploader. The new service copies its matching token to the Mac clipboard without printing or storing it. Keep the terminal open, refresh the local Studio URL and paste directly into the token field. Copying another command replaces the clipboard token. Existing Sentinel environment variables are inherited from the launching terminal; credentials configured only in the old process are not recovered by this helper.
