@@ -99,6 +99,7 @@ def main():
         subprocess.run(['pbcopy'], input=token, text=True, check=True)
         print(f'Studio ready: http://127.0.0.1:{args.port}/', flush=True)
         print(f'Training runs: {artifacts}', flush=True)
+        print('Sentinel client ID: ' + ('configured' if os.environ.get('SENTINEL_CLIENT_ID') else 'missing') + '; client secret: ' + ('configured' if os.environ.get('SENTINEL_CLIENT_SECRET') else 'missing'), flush=True)
         print('Matching token copied. Paste directly into the login field with Cmd+V. Keep this terminal open.', flush=True)
         server.serve_forever()
     finally:

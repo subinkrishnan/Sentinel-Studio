@@ -3,20 +3,31 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
+class ConnectionSetupError(ValueError):
+    def __init__(self, code, reason):
+        super().__init__(reason)
+        self.code = code
+
 def client():
     url=os.environ.get('SENTINEL_BASE_URL','https://dev.sentinel.inalpha.ai')
     parsed=urlsplit(url)
     if parsed.scheme!='https' or parsed.hostname!='dev.sentinel.inalpha.ai' or parsed.username or parsed.password or parsed.query:
-        raise ValueError('Only the Sentinel Dev HTTPS origin is supported')
+        raise ConnectionSetupError('INVALID_DEV_ORIGIN','Only the Sentinel Dev HTTPS origin is supported; check SENTINEL_BASE_URL')
     cid=os.environ.get('SENTINEL_CLIENT_ID');secret=os.environ.get('SENTINEL_CLIENT_SECRET')
-    if not cid or not secret:raise ValueError('Set Sentinel client credentials on the runner host; browser login is separate')
-    from sentinel_client import Client
+    if not cid or not secret:
+        missing = ', '.join(name for name, value in [('SENTINEL_CLIENT_ID', cid), ('SENTINEL_CLIENT_SECRET', secret)] if not value)
+        raise ConnectionSetupError('MISSING_CREDENTIALS','Sentinel client credentials missing from the Studio service environment: ' + missing + '. The Studio login token is separate.')
+    try:
+        from sentinel_client import Client
+    except ImportError as error:
+        code = 'SDK_NOT_INSTALLED' if getattr(error, 'name', None) == 'sentinel_client' else 'SDK_IMPORT_FAILED'
+        raise ConnectionSetupError(code,'Sentinel SDK could not be loaded in the Studio Python environment. Use the environment containing the working uploader SDK.') from None
     return Client(url,cid,secret)
 
 def connect():
     # No customer data is read; authentication/scopes are exercised by the SDK.
     result=client().query('SELECT 1 AS ok')
-    if result!=[{'ok':1}]:raise ValueError('Unexpected Sentinel connectivity response')
+    if result!=[{'ok':1}]:raise ConnectionSetupError('QUERY_RESPONSE_MISMATCH','Dev returned an unexpected result for the connectivity query SELECT 1 AS ok')
     return {'status':'CONNECTED','query_check':'PASS','production_publication_allowed':False}
 
 def portable_model(artifact):
@@ -51,3 +62,4 @@ def push(path,name,version,sql,metrics):
     # The platform API authenticates, verifies, signs and lands in STAGING.
     result=client().push_model(name=name,version=version,artifact_path=str(path),feature_sql=sql,framework='sklearn',evaluation_metrics=metrics)
     return {'status':'STAGING_PUSH_SUBMITTED','response':result,'engine_runtime_parity':'PENDING_LIVE_TEST','production_publication_allowed':False}
+

@@ -38,4 +38,18 @@ class StudioIntegration(unittest.TestCase):
   self.admin.stage.return_value={'status':'STAGING_PUSH_SUBMITTED'}
   self.assertEqual(self.request('/api/engine/stage','POST',{'run':'test-run','model':'XGB'})[0],200);self.admin.stage.assert_called_once_with('test-run','XGB')
   with patch('admin_server.engine.connect',return_value={'status':'CONNECTED'}):self.assertEqual(self.request('/api/engine/connect','POST',{})[0],200)
+ def test_missing_credentials_reported_from_service_environment(self):
+  self.login()
+  with patch.dict('os.environ',{},clear=True):
+   status,body,_=self.request('/api/engine/connect','POST',{})
+  self.assertEqual(status,409);data=json.loads(body)
+  self.assertEqual(data['connection']['code'],'MISSING_CREDENTIALS')
+  self.assertIn('SENTINEL_CLIENT_ID',data['error']);self.assertIn('SENTINEL_CLIENT_SECRET',data['error'])
+  self.assertEqual(self.admin.connection['status'],'BLOCKED')
+ def test_sdk_exception_is_redacted(self):
+  self.login()
+  with patch('admin_server.engine.connect',side_effect=RuntimeError('sensitive-sdk-credential')):
+   status,body,_=self.request('/api/engine/connect','POST',{})
+  self.assertEqual(status,409);self.assertNotIn(b'sensitive-sdk-credential',body)
+  self.assertEqual(json.loads(body)['connection']['code'],'DEV_QUERY_FAILED')
 if __name__=='__main__':unittest.main()

@@ -130,6 +130,10 @@ def make_http_server(admin,port,token):
     return self.send({'error':'Not found'},404)
    except Exception as e:
     # Never echo SDK/server exceptions that could contain credentials.
+    if self.path=='/api/engine/connect':
+     setup=isinstance(e,engine.ConnectionSetupError)
+     admin.connection={'status':'BLOCKED','code':e.code if setup else 'DEV_QUERY_FAILED','reason':str(e) if setup else 'Dev authentication or query failed. Check credential validity, gateway.query permission and network access.','query_check':'FAILED','production_publication_allowed':False}
+     return self.send({'error':admin.connection['reason'],'connection':admin.connection},409)
     if self.path.startswith('/api/engine/'):
      admin.connection={'status':'BLOCKED','reason':'Check server credentials, SDK, scopes and reviewed Silver SQL'};return self.send({'error':admin.connection['reason']},409)
     return self.send({'error':str(e)},409)
