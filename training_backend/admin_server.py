@@ -5,7 +5,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from datetime import datetime,timezone
 from server import sha
-import verified_training,engine,prediction_validation
+import verified_training,engine,prediction_validation,mart
 
 class Admin:
  def __init__(self,config,root):
@@ -96,7 +96,7 @@ def make_http_server(admin,port,token):
  sessions={};web=Path(__file__).parent.parent
  # Serve only known application assets, never configs, datasets or backend code.
  assets={'/'+name:name for name in [
-  'training.js','training.css','styles.css','brief.css','brief.js',
+  'training.js','mart.js','training.css','styles.css','brief.css','brief.js',
   'business-report.css','business-report.js','data.js','app.js','demo-login.css',
   'demo-login.js','excel-export.js','report-dates.css','report-dates.js',
   'vendor/xlsx.mini.min.js','assets/atoma-logo.jpg']}
@@ -128,6 +128,7 @@ def make_http_server(admin,port,token):
    if not self.auth():return self.send({'error':'Unauthorised'},401)
    if self.path=='/api/session':return self.send({'authenticated':True,'mode':'development'})
    if self.path=='/api/status':return self.send(admin.status())
+   if self.path=='/api/mart/summary':return self.send(mart.snapshot(admin.config.get('mart',{})))
    if self.path.startswith('/api/artifacts/'):
     try:
      parts=self.path.split('/')
