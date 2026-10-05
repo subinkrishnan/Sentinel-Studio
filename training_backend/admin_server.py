@@ -5,7 +5,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from datetime import datetime,timezone
 from server import sha
-import verified_training,engine
+import verified_training,engine,prediction_validation
 
 class Admin:
  def __init__(self,config,root):
@@ -61,7 +61,31 @@ class Admin:
   settings=self.config.get('staging',{})
   if not settings.get('feature_sql'):raise ValueError('Configure reviewed engine Silver feature SQL before staging')
   m=next(x for x in r['metrics'] if x['model']==model)
-  response=engine.push(p,settings['name'],settings['version'],settings['feature_sql'],{k:m[k] for k in ['roc_auc','accuracy']});r['staging']=response;self.save(r);return response
+  response=engine.push(p,settings['name'],settings['version'],settings['feature_sql'],{k:m[k] for k in ['roc_auc','accuracy']});r.setdefault('prediction_validation',{}).pop(model,None);r['staging']=response;r['staging_identity']={'run':rid,'model':model,'name':settings['name'],'version':settings['version'],'serving_sha256':sha(p),'feature_sql_sha256':__import__('hashlib').sha256(settings['feature_sql'].encode()).hexdigest()};self.save(r);return response
+
+ def validate_predictions(self,rid,model,csv_text):
+  with self.lock:
+   r=self.runs.get(rid,{})
+   if r.get('status')!='COMPLETED':raise ValueError('Select a completed verified run')
+   identity=r.get('staging_identity',{})
+   if identity.get('model')!=model or identity.get('run')!=rid:raise ValueError('Stage this model first to record its Dev identity')
+   serving=self.artifact(rid,model+'_serving.joblib')
+   if sha(serving)!=identity.get('serving_sha256'):raise ValueError('Staged serving artifact changed')
+   self.artifact(rid,model+'_serving_parity.json')
+   reference=self.artifact(rid,model+'_validation_predictions.csv')
+   report=prediction_validation.compare(reference.read_text(),csv_text,identity['name'],identity['version'])
+   report.update(run=rid,model=model,staging_identity=identity)
+   # Immutable per-attempt evidence. A failed later check stays visible.
+   name=model+'_dev_prediction_validation_'+uuid.uuid4().hex[:12]+'.json'
+   path=self.root/rid/'results'/name
+   export_name=name.removesuffix('.json')+'.csv'
+   export_path=path.with_name(export_name)
+   export_path.write_bytes(csv_text.encode('utf-8'))
+   report['dev_export_artifact']=export_name
+   path.write_text(json.dumps(report,indent=2)+'\n')
+   r.setdefault('artifacts',[]).extend([{'name':export_name,'sha256':sha(export_path)},{'name':name,'sha256':sha(path)}])
+   r.setdefault('prediction_validation',{})[model]={**report,'artifact':name}
+   self.save(r);return report
 
 def serve(config,root,port):
  token=os.environ.get('COM01_RUNNER_TOKEN','')
@@ -113,8 +137,10 @@ def make_http_server(admin,port,token):
    return self.send({'error':'Not found'},404)
   def do_POST(self):
    if not self.valid_host() or self.headers.get('Origin') not in [f'http://localhost:{port}',f'http://127.0.0.1:{port}']:return self.send({'error':'Same-origin request required'},403)
-   n=int(self.headers.get('Content-Length','0'))
-   if n>8192:return self.send({'error':'Request too large'},413)
+   try:n=int(self.headers.get('Content-Length','0'))
+   except ValueError:return self.send({'error':'Invalid request length'},400)
+   limit=prediction_validation.MAX_BYTES if self.path=='/api/predictions/validate' else 8192
+   if n<0 or n>limit:return self.send({'error':'Request too large'},413)
    try:body=json.loads(self.rfile.read(n) or '{}')
    except Exception:return self.send({'error':'Invalid JSON'},400)
    if self.path=='/api/session':
@@ -125,6 +151,7 @@ def make_http_server(admin,port,token):
     if self.path=='/api/logout':
      c=SimpleCookie(self.headers.get('Cookie',''));sessions.pop(c['com01_session'].value,None);return self.send({'ok':True})
     if self.path=='/api/runs':return self.send(admin.start(),202)
+    if self.path=='/api/predictions/validate':return self.send(admin.validate_predictions(body['run'],body['model'],body['csv']))
     if self.path=='/api/engine/connect':admin.connection=engine.connect();return self.send(admin.connection)
     if self.path=='/api/engine/stage':return self.send(admin.stage(body['run'],body['model']))
     return self.send({'error':'Not found'},404)

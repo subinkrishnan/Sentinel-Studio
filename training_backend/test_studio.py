@@ -38,6 +38,14 @@ class StudioIntegration(unittest.TestCase):
   self.admin.stage.return_value={'status':'STAGING_PUSH_SUBMITTED'}
   self.assertEqual(self.request('/api/engine/stage','POST',{'run':'test-run','model':'XGB'})[0],200);self.admin.stage.assert_called_once_with('test-run','XGB')
   with patch('admin_server.engine.connect',return_value={'status':'CONNECTED'}):self.assertEqual(self.request('/api/engine/connect','POST',{})[0],200)
+ def test_prediction_validation_requires_session_and_routes_selected_run(self):
+  body={'run':'test-run','model':'XGB','csv':'export'}
+  self.assertEqual(self.request('/api/predictions/validate','POST',body)[0],401)
+  self.admin.validate_predictions.assert_not_called()
+  self.login();self.admin.validate_predictions.return_value={'status':'PREDICTION_PARITY_FAIL'}
+  status,response,_=self.request('/api/predictions/validate','POST',body)
+  self.assertEqual(status,200);self.assertEqual(json.loads(response)['status'],'PREDICTION_PARITY_FAIL')
+  self.admin.validate_predictions.assert_called_once_with('test-run','XGB','export')
  def test_missing_credentials_reported_from_service_environment(self):
   self.login()
   with patch.dict('os.environ',{},clear=True):
