@@ -66,11 +66,21 @@ class Admin:
 def serve(config,root,port):
  token=os.environ.get('COM01_RUNNER_TOKEN','')
  if not os.environ.get('COM01_RUNNER_TOKEN') or len(token)<24:raise ValueError('Set a random COM01_RUNNER_TOKEN of at least 24 characters')
- admin=Admin(config,root);sessions={};web=Path(__file__).parent.parent
+ make_http_server(Admin(config,root),port,token).serve_forever()
+
+def make_http_server(admin,port,token):
+ sessions={};web=Path(__file__).parent.parent
+ # Serve only known application assets, never configs, datasets or backend code.
+ assets={'/'+name:name for name in [
+  'training.js','training.css','styles.css','brief.css','brief.js',
+  'business-report.css','business-report.js','data.js','app.js','demo-login.css',
+  'demo-login.js','excel-export.js','report-dates.css','report-dates.js',
+  'vendor/xlsx.mini.min.js','assets/atoma-logo.jpg']}
+ assets['/login.js']='training_backend/login.js'
  class H(BaseHTTPRequestHandler):
   def log_message(self,*args):pass
   def end_headers(self):
-   self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Referrer-Policy','no-referrer');self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'");super().end_headers()
+   self.send_header('Cache-Control','no-store');self.send_header('X-Content-Type-Options','nosniff');self.send_header('Referrer-Policy','no-referrer');self.send_header('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; form-action 'self'");super().end_headers()
   def send(self,data,status=200,kind='application/json'):
    body=json.dumps(data).encode() if kind=='application/json' else data;self.send_response(status);self.send_header('Content-Type',kind);self.end_headers();self.wfile.write(body)
   def valid_host(self):return self.headers.get('Host') in [f'127.0.0.1:{port}',f'localhost:{port}']
@@ -78,11 +88,21 @@ def serve(config,root,port):
    cookie=SimpleCookie(self.headers.get('Cookie',''));s=cookie.get('com01_session');return bool(s and sessions.get(s.value,0)>time.time())
   def do_GET(self):
    if not self.valid_host():return self.send({'error':'Invalid host'},403)
-   if self.path=='/':
-    file='admin.html' if self.auth() else 'login.html';return self.send((web/'training_backend'/file).read_bytes(),kind='text/html')
-   if self.path in ['/login.js','/training.js','/training.css','/styles.css']:
-    p=web/self.path[1:] if self.path!='/login.js' else web/'training_backend/login.js';return self.send(p.read_bytes(),kind='text/javascript' if p.suffix=='.js' else 'text/css')
+   from urllib.parse import urlsplit
+   path=urlsplit(self.path).path
+   if path in ['/', '/index.html', '/training.html']:
+    if not self.auth():return self.send((web/'training_backend/login.html').read_bytes(),kind='text/html')
+    file='training.html' if path=='/training.html' else 'index.html'
+    html=(web/file).read_text()
+    if file=='index.html':html=html.replace('<body>','<body data-runner-session="true">',1)
+    return self.send(html.encode(),kind='text/html')
+   if path in assets:
+    import mimetypes
+    p=web/assets[path]
+    if not p.is_file():return self.send({'error':'Asset not found'},404)
+    return self.send(p.read_bytes(),kind=mimetypes.guess_type(p.name)[0] or 'application/octet-stream')
    if not self.auth():return self.send({'error':'Unauthorised'},401)
+   if self.path=='/api/session':return self.send({'authenticated':True,'mode':'development'})
    if self.path=='/api/status':return self.send(admin.status())
    if self.path.startswith('/api/artifacts/'):
     try:
@@ -113,6 +133,9 @@ def serve(config,root,port):
     if self.path.startswith('/api/engine/'):
      admin.connection={'status':'BLOCKED','reason':'Check server credentials, SDK, scopes and reviewed Silver SQL'};return self.send({'error':admin.connection['reason']},409)
     return self.send({'error':str(e)},409)
- ThreadingHTTPServer(('127.0.0.1',port),H).serve_forever()
+ httpd=ThreadingHTTPServer(('127.0.0.1',port),H)
+ port=httpd.server_address[1]
+ return httpd
 if __name__=='__main__':
  p=argparse.ArgumentParser();p.add_argument('--config',required=True);p.add_argument('--artifacts',default='local-artifacts');p.add_argument('--port',type=int,default=8765);a=p.parse_args();serve(a.config,a.artifacts,a.port)
+

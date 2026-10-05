@@ -1,6 +1,6 @@
 # Private postpaid COM01 admin
 
-Run this module on the training host. GitHub Pages serves only the public entry link; it cannot execute Python or securely host private training results. The admin service binds to loopback and protects the page, API, evidence and downloads using an expiring HttpOnly session. No prepaid files are changed.
+Run this module on the training host. Studio and COM01 Training are served together by the authenticated service. GitHub Pages can preview the interface; it cannot execute Python or securely host private training results. The admin service binds to loopback and protects the page, API, evidence and downloads using an expiring HttpOnly session. No prepaid files are changed.
 
 ## Start on your Mac
 
@@ -14,7 +14,7 @@ export COM01_RUNNER_TOKEN="$(python3 -c 'import secrets; print(secrets.token_url
 python3 training_backend/admin_server.py --config /absolute/path/local.admin.json --artifacts /absolute/path/private-runs
 ```
 
-Use the generated runner token locally at `http://127.0.0.1:8765/`. Keep the terminal running. Never paste tokens into GitHub or chat. Runner sign-in is separate from Sentinel authentication.
+Open Studio and use the generated runner token locally at `http://127.0.0.1:8765/`. Keep the terminal running. Never paste tokens into GitHub or chat. Runner sign-in is separate from Sentinel authentication.
 
 ## Sentinel connection
 
@@ -35,3 +35,12 @@ The runner validates source hashes, source/leakage audit, SQL boundaries/parity,
 Run `python3 -m unittest discover -s training_backend -p 'test_*.py'` for unit checks. Actual engine connectivity, staging upload and Live Test cannot be certified by mocked SDK tests.
 
 Current acceptance is synthetic experiment evidence. No claim of 97% classification accuracy or production qualification is made. Keep private datasets, configs, artifacts and credentials out of the public repository. For multi-user remote hosting, replace the local session mechanism with organisation SSO, TLS, RBAC and a secret store before deployment.
+
+
+## Integrated Studio
+
+After updating this branch, start `admin_server.py` with your existing config, artifacts directory and port. The root URL opens Studio; its Training menu opens the existing COM01 console on the same origin. Both share the service session, so no second demo login is required. Returning to Executive Brief, Decisions or Reports preserves the session. Signing out ends it for both.
+
+For the current Mac setup using port 8767, open `http://127.0.0.1:8767/`. Update/restart only the Studio service. Leave the independent source uploader terminal running. Do not change its checkpoints or source namespace. Existing artifact directories are reused.
+
+Static hosting cannot run the Python service: the Training preview shows a disconnected state and disables actions. Executive reports and Ask Pulse still use synthetic demo data. This change integrates the training console, not live Mart consumption or model publication. Sentinel credentials remain in the service environment; Dev staging uses the existing verified export and reviewed Silver query checks.
