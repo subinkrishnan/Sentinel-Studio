@@ -13,7 +13,7 @@ def client():
     parsed=urlsplit(url)
     if parsed.scheme!='https' or parsed.hostname!='dev.sentinel.inalpha.ai' or parsed.username or parsed.password or parsed.query:
         raise ConnectionSetupError('INVALID_DEV_ORIGIN','Only the Sentinel Dev HTTPS origin is supported; check SENTINEL_BASE_URL')
-    cid=os.environ.get('SENTINEL_CLIENT_ID');secret=os.environ.get('SENTINEL_CLIENT_SECRET')
+    cid=os.environ.get('SENTINEL_CLIENT_ID','').strip().removeprefix('client_id=').strip();secret=os.environ.get('SENTINEL_CLIENT_SECRET','').strip().removeprefix('client_secret=').strip()
     if not cid or not secret:
         missing = ', '.join(name for name, value in [('SENTINEL_CLIENT_ID', cid), ('SENTINEL_CLIENT_SECRET', secret)] if not value)
         raise ConnectionSetupError('MISSING_CREDENTIALS','Sentinel client credentials missing from the Studio service environment: ' + missing + '. The Studio login token is separate.')

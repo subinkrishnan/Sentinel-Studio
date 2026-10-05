@@ -23,4 +23,13 @@ class AdminChecks(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'separate'):push(Path('x'),'newchurn10','v1.0.0','SELECT * FROM silver__x',{})
  def test_unreviewed_sql_blocks(self):
   with self.assertRaisesRegex(ValueError,'Silver'):push(Path('x'),'com01_experiment_test','v0.5.0','',{})
+ def test_pasted_credential_prefixes_normalised(self):
+  import sys,types
+  from engine import client
+  from unittest.mock import Mock
+  sdk=types.ModuleType('sentinel_client');sdk.Client=Mock()
+  with patch.dict(os.environ,{'SENTINEL_BASE_URL':'https://dev.sentinel.inalpha.ai','SENTINEL_CLIENT_ID':'  client_id=test-id  ','SENTINEL_CLIENT_SECRET':'  client_secret=test-secret  '},clear=True),patch.dict(sys.modules,{'sentinel_client':sdk}):
+   client()
+  sdk.Client.assert_called_once_with('https://dev.sentinel.inalpha.ai','test-id','test-secret')
 if __name__=='__main__':unittest.main()
+

@@ -1,5 +1,6 @@
 """Mac Studio launcher: preserve run folders and copy the matching login token."""
 import argparse
+import getpass
 import json
 import os
 from pathlib import Path
@@ -76,6 +77,7 @@ def main():
     parser.add_argument('--artifacts', type=Path)
     parser.add_argument('--port', type=int, default=8767)
     parser.add_argument('--expected-pid', type=int)
+    parser.add_argument('--prompt-credentials', action='store_true', help='Enter Dev credentials privately and verify them before restarting')
     args = parser.parse_args()
     if sys.platform != 'darwin' or not shutil.which('pbcopy') or not shutil.which('lsof'):
         raise ValueError('This launcher requires macOS with pbcopy and lsof')
@@ -89,6 +91,19 @@ def main():
     if not Path(settings['data_dir']).expanduser().is_dir():
         raise ValueError('Configured dataset folder is missing. Studio was not stopped.')
     artifacts = choose_artifacts([local, repo, home / 'local-artifacts'], home / 'local-artifacts', args.artifacts)
+    if args.prompt_credentials:
+        os.environ['SENTINEL_CLIENT_ID'] = getpass.getpass('Dev Client ID (hidden): ').strip().removeprefix('client_id=').strip()
+        os.environ['SENTINEL_CLIENT_SECRET'] = getpass.getpass('Dev Client Secret (hidden): ').strip().removeprefix('client_secret=').strip()
+        from engine import connect, ConnectionSetupError
+        try:
+            connect()
+        except ConnectionSetupError:
+            raise
+        except Exception as error:
+            status = getattr(error, 'status_code', None) or getattr(getattr(error, 'response', None), 'status_code', None)
+            detail = ('; HTTP ' + str(status)) if isinstance(status, int) else ''
+            raise ValueError('Dev query verification failed (' + type(error).__name__ + detail + '). Existing Studio was not stopped. Check the matching active credential pair.') from None
+        print('Dev authentication and connectivity query: PASS', flush=True)
     # Load dependencies and config before stopping the existing listener.
     from admin_server import Admin, make_http_server
     admin = Admin(config, artifacts)
