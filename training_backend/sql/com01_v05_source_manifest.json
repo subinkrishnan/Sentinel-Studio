@@ -1,0 +1,314 @@
+{
+  "version": "0.5.0-SOURCE-FIRST-BENCHMARK",
+  "spec_sha256": "a561d1033e636594b1e6fc1434f0c604df8522aa21db3883bf54394bd3aea013",
+  "builder_sha256": "1462896c48cce0928198a8bdf47873ea42745fc10fe037be474f8d5f4c448ca2",
+  "outcome_inputs": "pre-cutoff source-derived features plus independent noise; no retrospective label-conditioned events",
+  "original_blind_read": false,
+  "reserved_features_or_labels_generated": false,
+  "date_hazards": [
+    {
+      "t0": "2025-09-05 00:00:00+00:00",
+      "eligible": 8000,
+      "mean_total_probability": 0.0455391515033586,
+      "sampled_terminations": 360,
+      "voluntary_terminations": 312
+    },
+    {
+      "t0": "2025-10-05 00:00:00+00:00",
+      "eligible": 7640,
+      "mean_total_probability": 0.042565266964953885,
+      "sampled_terminations": 300,
+      "voluntary_terminations": 256
+    },
+    {
+      "t0": "2025-11-04 00:00:00+00:00",
+      "eligible": 7340,
+      "mean_total_probability": 0.04318413359383371,
+      "sampled_terminations": 319,
+      "voluntary_terminations": 270
+    },
+    {
+      "t0": "2025-12-04 00:00:00+00:00",
+      "eligible": 7021,
+      "mean_total_probability": 0.042791280774437356,
+      "sampled_terminations": 308,
+      "voluntary_terminations": 259
+    },
+    {
+      "t0": "2026-01-03 00:00:00+00:00",
+      "eligible": 6713,
+      "mean_total_probability": 0.03926916434996136,
+      "sampled_terminations": 257,
+      "voluntary_terminations": 216
+    },
+    {
+      "t0": "2026-02-02 00:00:00+00:00",
+      "eligible": 6456,
+      "mean_total_probability": 0.04005078044804147,
+      "sampled_terminations": 295,
+      "voluntary_terminations": 245
+    },
+    {
+      "t0": "2026-03-04 00:00:00+00:00",
+      "eligible": 6161,
+      "mean_total_probability": 0.04080307468115114,
+      "sampled_terminations": 238,
+      "voluntary_terminations": 199
+    },
+    {
+      "t0": "2026-04-03 00:00:00+00:00",
+      "eligible": 5923,
+      "mean_total_probability": 0.03953868687979686,
+      "sampled_terminations": 227,
+      "voluntary_terminations": 204
+    },
+    {
+      "t0": "2026-05-03 00:00:00+00:00",
+      "eligible": 5696,
+      "mean_total_probability": 0.03730760896026046,
+      "sampled_terminations": 213,
+      "voluntary_terminations": 178
+    },
+    {
+      "t0": "2026-06-02 00:00:00+00:00",
+      "eligible": 5483,
+      "mean_total_probability": 0.036912335898357684,
+      "sampled_terminations": 186,
+      "voluntary_terminations": 158
+    },
+    {
+      "t0": "2026-07-02 00:00:00+00:00",
+      "eligible": 5297,
+      "mean_total_probability": 0.035488568524580676,
+      "sampled_terminations": 205,
+      "voluntary_terminations": 184
+    },
+    {
+      "t0": "2026-08-01 00:00:00+00:00",
+      "eligible": 5092,
+      "mean_total_probability": 0.03623986539543831,
+      "sampled_terminations": 186,
+      "voluntary_terminations": 158
+    }
+  ],
+  "split_counts": {
+    "train": 66027,
+    "validation": 10340
+  },
+  "sources": [
+    {
+      "name": "tmform_a_contract_detail",
+      "path": "sql_sources/tmform_a_contract_detail.csv.gz",
+      "columns": [
+        "contract_id",
+        "customer_id",
+        "service_instance_id",
+        "product_offering_id",
+        "contract_status",
+        "contract_start_date",
+        "contract_end_date",
+        "commitment_months",
+        "auto_renewal_flag",
+        "created_ts",
+        "updated_ts",
+        "ingested_ts",
+        "source_system"
+      ],
+      "rows": 19417,
+      "sha256": "5172ddf17cb48abd70101d26de55addfffe3ae77a119177ce1b1acf6c0e4a591"
+    },
+    {
+      "name": "tmform_a_customer_account",
+      "path": "sql_sources/tmform_a_customer_account.csv.gz",
+      "columns": [
+        "customer_id",
+        "created_ts",
+        "ingested_ts"
+      ],
+      "rows": 8000,
+      "sha256": "ec7458f97065e7894a56cfaa49c3e32441d462f9697e78e4225f0bed4aeab21e"
+    },
+    {
+      "name": "tmform_a_service_instance",
+      "path": "sql_sources/tmform_a_service_instance.csv.gz",
+      "columns": [
+        "service_instance_id",
+        "customer_id",
+        "service_type",
+        "billing_model",
+        "activation_date",
+        "created_ts",
+        "ingested_ts"
+      ],
+      "rows": 8000,
+      "sha256": "fee40a03c737513297e62ac86d6ee862f7b9ddf32b660731b38133f4f376a139"
+    },
+    {
+      "name": "tmform_a_service_status_history",
+      "path": "sql_sources/tmform_a_service_status_history.csv.gz",
+      "columns": [
+        "service_status_history_id",
+        "service_instance_id",
+        "customer_id",
+        "service_status",
+        "status_reason_code",
+        "status_sequence_no",
+        "status_start_ts",
+        "created_ts",
+        "ingested_ts"
+      ],
+      "rows": 11094,
+      "sha256": "04b78110d71eee1b6a177a24cced9ca8f27950a66426a08e227df8d62e7054c6"
+    },
+    {
+      "name": "tmform_d_usage_event",
+      "path": "sql_sources/tmform_d_usage_event.csv.gz",
+      "columns": [
+        "service_instance_id",
+        "customer_id",
+        "event_ts",
+        "created_ts",
+        "ingested_ts",
+        "usage_type",
+        "usage_unit",
+        "usage_quantity",
+        "source_event_id"
+      ],
+      "rows": 790913,
+      "sha256": "406b14d9f953fd93f354d6b4652b7c7cc1fc3036ebefac34f935ef765c855c89"
+    },
+    {
+      "name": "tmform_e_invoice",
+      "path": "sql_sources/tmform_e_invoice.csv.gz",
+      "columns": [
+        "invoice_id",
+        "customer_id",
+        "billing_account_id",
+        "bill_run_id",
+        "invoice_amount",
+        "currency_code",
+        "invoice_status",
+        "invoice_date",
+        "due_date",
+        "created_ts",
+        "updated_ts",
+        "ingested_ts",
+        "source_system"
+      ],
+      "rows": 95730,
+      "sha256": "1f670fa7da67771865c7a167989cf9479592c59c8bba521673cbf39ed2a8d6d7"
+    },
+    {
+      "name": "tmform_e_invoice_balance_history",
+      "path": "sql_sources/tmform_e_invoice_balance_history.csv.gz",
+      "columns": [
+        "balance_history_id",
+        "invoice_id",
+        "customer_id",
+        "balance_type",
+        "outstanding_amount",
+        "currency_code",
+        "transaction_ts",
+        "created_ts",
+        "ingested_ts",
+        "source_system"
+      ],
+      "rows": 191460,
+      "sha256": "8331fe24c1b66d875d7453e137d4ce9b9152756f5b46bfc0a8adb9d00eb5fc46"
+    },
+    {
+      "name": "tmform_e_payment_transaction",
+      "path": "sql_sources/tmform_e_payment_transaction.csv.gz",
+      "columns": [
+        "payment_transaction_id",
+        "customer_id",
+        "billing_account_id",
+        "invoice_id",
+        "payment_amount",
+        "currency_code",
+        "payment_method",
+        "payment_status",
+        "transaction_ts",
+        "created_ts",
+        "updated_ts",
+        "ingested_ts",
+        "source_system"
+      ],
+      "rows": 101571,
+      "sha256": "3a5895cb4a9c87166de5dc28e4a086648b4df2ffa8da193b6b0f31563490dae3"
+    },
+    {
+      "name": "tmform_f_complaint",
+      "path": "sql_sources/tmform_f_complaint.csv.gz",
+      "columns": [
+        "service_instance_id",
+        "customer_id",
+        "submitted_ts",
+        "created_ts",
+        "ingested_ts",
+        "source_event_id"
+      ],
+      "rows": 22500,
+      "sha256": "ab6faefbc3d052f982f4e22e7a9aebc878bf06177b72aa4c300f94d700408856"
+    },
+    {
+      "name": "tmform_f_customer_interaction",
+      "path": "sql_sources/tmform_f_customer_interaction.csv.gz",
+      "columns": [
+        "service_instance_id",
+        "customer_id",
+        "started_ts",
+        "created_ts",
+        "ingested_ts",
+        "source_event_id"
+      ],
+      "rows": 54619,
+      "sha256": "2fe377e25fd5d02a4e7487a441516bfac422d2dcdb9deca61f843390688d8c28"
+    },
+    {
+      "name": "tmform_j_product_order",
+      "path": "sql_sources/tmform_j_product_order.csv.gz",
+      "columns": [
+        "service_instance_id",
+        "customer_id",
+        "submitted_ts",
+        "created_ts",
+        "ingested_ts",
+        "order_type",
+        "source_event_id"
+      ],
+      "rows": 8060,
+      "sha256": "abf2699f47bcf882f30c57e7399f68ec7340c51c7698c9f8cdb2825a2385070a"
+    },
+    {
+      "name": "tmform_k_service_impact_event",
+      "path": "sql_sources/tmform_k_service_impact_event.csv.gz",
+      "columns": [
+        "service_instance_id",
+        "customer_id",
+        "detected_ts",
+        "created_ts",
+        "ingested_ts",
+        "resolved_ts",
+        "source_event_id"
+      ],
+      "rows": 21696,
+      "sha256": "1ab0bfc364d52c92fc55e942c6d3be423f41aa77d2af1ccbfb749ec7d41876a8"
+    },
+    {
+      "name": "tmform_m_digital_session",
+      "path": "sql_sources/tmform_m_digital_session.csv.gz",
+      "columns": [
+        "service_instance_id",
+        "customer_id",
+        "started_ts",
+        "created_ts",
+        "ingested_ts",
+        "source_event_id"
+      ],
+      "rows": 474621,
+      "sha256": "6a56792fe126bce9b5e5124d32136d4cee88463bd7581f5778813fc4e91dd588"
+    }
+  ],
+  "publication_allowed": false
+}
