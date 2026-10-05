@@ -33,7 +33,7 @@ class MartConnection(unittest.TestCase):
     def test_last_valid_published_run_reported(self):
         sdk=Mock();sdk.query.return_value=[{'snapshot':json.dumps(payload())}]
         result=snapshot(settings(),lambda _:sdk)
-        self.assertEqual(result['status'],'CONNECTED');self.assertTrue(result['fallback']);self.assertTrue(result['synthetic']);self.assertFalse(result['pulse_engine_connected'])
+        self.assertEqual(result['status'],'CONNECTED');self.assertTrue(result['fallback']);self.assertTrue(result['synthetic']);self.assertTrue(result['pulse_requires_separate_verification'])
     def test_empty_invalid_and_errors_are_not_demo_results(self):
         sdk=Mock();p=payload();p['run']=None;sdk.query.return_value=[{'snapshot':p}]
         self.assertEqual(snapshot(settings(),lambda _:sdk)['status'],'NO_PUBLISHED_DATA')

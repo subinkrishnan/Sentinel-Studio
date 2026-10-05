@@ -5,7 +5,7 @@ from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from datetime import datetime,timezone
 from server import sha
-import verified_training,engine,prediction_validation,mart
+import verified_training,engine,prediction_validation,mart,pulse
 
 class Admin:
  def __init__(self,config,root):
@@ -93,10 +93,10 @@ def serve(config,root,port):
  make_http_server(Admin(config,root),port,token).serve_forever()
 
 def make_http_server(admin,port,token):
- sessions={};web=Path(__file__).parent.parent
+ sessions={};pulse_bridge=pulse.Pulse();web=Path(__file__).parent.parent
  # Serve only known application assets, never configs, datasets or backend code.
  assets={'/'+name:name for name in [
-  'training.js','mart.js','training.css','styles.css','brief.css','brief.js',
+  'training.js','mart.js','pulse.js','training.css','styles.css','brief.css','brief.js',
   'business-report.css','business-report.js','data.js','app.js','demo-login.css',
   'demo-login.js','excel-export.js','report-dates.css','report-dates.js',
   'vendor/xlsx.mini.min.js','assets/atoma-logo.jpg']}
@@ -129,6 +129,7 @@ def make_http_server(admin,port,token):
    if self.path=='/api/session':return self.send({'authenticated':True,'mode':'development'})
    if self.path=='/api/status':return self.send(admin.status())
    if self.path=='/api/mart/summary':return self.send(mart.snapshot(admin.config.get('mart',{})))
+   if self.path=='/api/pulse/status':return self.send(pulse_bridge.status(admin.config.get('pulse',{}),admin.config.get('mart',{})))
    if self.path.startswith('/api/artifacts/'):
     try:
      parts=self.path.split('/')
@@ -150,7 +151,12 @@ def make_http_server(admin,port,token):
    if not self.auth():return self.send({'error':'Unauthorised'},401)
    try:
     if self.path=='/api/logout':
-     c=SimpleCookie(self.headers.get('Cookie',''));sessions.pop(c['com01_session'].value,None);return self.send({'ok':True})
+     c=SimpleCookie(self.headers.get('Cookie',''));sid=c['com01_session'].value;sessions.pop(sid,None);pulse_bridge.reset(sid);return self.send({'ok':True})
+    if self.path=='/api/pulse/ask':
+     sid=SimpleCookie(self.headers.get('Cookie',''))['com01_session'].value
+     return self.send(pulse_bridge.ask(sid,body.get('question'),admin.config.get('pulse',{}),admin.config.get('mart',{}),body.get('run')))
+    if self.path=='/api/pulse/reset':
+     pulse_bridge.reset(SimpleCookie(self.headers.get('Cookie',''))['com01_session'].value);return self.send({'ok':True})
     if self.path=='/api/runs':return self.send(admin.start(),202)
     if self.path=='/api/predictions/validate':return self.send(admin.validate_predictions(body['run'],body['model'],body['csv']))
     if self.path=='/api/engine/connect':admin.connection=engine.connect();return self.send(admin.connection)

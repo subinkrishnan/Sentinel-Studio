@@ -27,7 +27,7 @@ Once both environments expose the same logical contract, switching the Mart mode
 
 A single read-only aggregate query checks whole scoring runs before selecting the latest eligible run. Every row must be PASS/PUBLISHED, with valid identities, finite bounded probabilities, recognised bands, consistent model/cutoff and no duplicate services. It does not filter bad rows out to manufacture a passing run. Older eligible runs can be displayed when a newer attempt fails, with an explicit fallback notice.
 
-Executive Brief shows scored subscribers, high-risk subscribers/share, mean probability, risk bands, up to 12 eligible historical runs, segments and recorded reasons. Reports shows that scoring history. Live campaign decisions, revenue, protected subscriber counts and causal uplift are unavailable through this contract. Ask Pulse remains disabled until its actual engine integration is built; this adapter does not substitute canned answers.
+Executive Brief shows scored subscribers, high-risk subscribers/share, mean probability, risk bands, up to 12 eligible historical runs, segments and recorded reasons. Reports shows that scoring history. Live campaign decisions, revenue, protected subscriber counts and causal uplift are unavailable through this contract. Ask Pulse uses the separate Assistant bridge and its own readiness checks, documented in PULSE_CONNECTION.md. Mart connectivity alone does not imply Pulse readiness.
 
 NOT_CONFIGURED, NO_PUBLISHED_DATA and BLOCKED states show no synthetic demo fallback. Refresh triggers a read on demand; Bronze uploader and local training are untouched. SDK exception details and credential values are not returned to the browser.
 

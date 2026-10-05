@@ -27,7 +27,7 @@ class StudioIntegration(unittest.TestCase):
   self.request('/api/logout','POST',{});self.assertEqual(self.request('/api/status')[0],401)
   self.assertIn(b'id="token"',self.request('/index.html')[1])
  def test_static_allowlist_and_bad_origin(self):
-  for asset in ['/app.js','/brief.js','/styles.css','/demo-login.js','/training.js','/mart.js']:
+  for asset in ['/app.js','/brief.js','/styles.css','/demo-login.js','/training.js','/mart.js','/pulse.js']:
    self.assertEqual(self.request(asset)[0],200,asset)
   self.assertEqual(self.request('/api/session','POST',{'token':'test-access-token-for-local-checks'},origin='https://other.example')[0],403)
   self.login()
@@ -38,6 +38,13 @@ class StudioIntegration(unittest.TestCase):
   self.admin.stage.return_value={'status':'STAGING_PUSH_SUBMITTED'}
   self.assertEqual(self.request('/api/engine/stage','POST',{'run':'test-run','model':'XGB'})[0],200);self.admin.stage.assert_called_once_with('test-run','XGB')
   with patch('admin_server.engine.connect',return_value={'status':'CONNECTED'}):self.assertEqual(self.request('/api/engine/connect','POST',{})[0],200)
+ def test_pulse_endpoints_require_session_and_never_execute_actions(self):
+  self.assertEqual(self.request('/api/pulse/status')[0],401)
+  self.assertEqual(self.request('/api/pulse/ask','POST',{'question':'q','run':'r'})[0],401)
+  self.login();self.admin.config={'pulse':{'enabled':False},'mart':{}}
+  status,body,_=self.request('/api/pulse/status');self.assertEqual(status,200);self.assertEqual(json.loads(body)['status'],'NOT_CONFIGURED')
+  self.assertEqual(self.request('/api/pulse/ask','POST',{'question':'q','run':'r'})[0],409)
+  self.assertEqual(self.request('/api/pulse/actions/1/execute','POST',{})[0],404)
  def test_mart_api_is_private_and_configured(self):
   self.assertEqual(self.request('/api/mart/summary')[0],401)
   self.login();self.admin.config={'mart':{'enabled':False}}

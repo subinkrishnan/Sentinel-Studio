@@ -132,7 +132,7 @@ def snapshot(settings, client_factory=make_client):
                 'business_line': settings.get('business_line', 'Postpaid'),
                 'synthetic': settings['mode'] == 'dev_experiment',
                 'fallback': bool(latest and latest['run_id'] != run['run_id']),
-                'data': data, 'feature_parity': 'SEPARATE_GATE', 'pulse_engine_connected': False}
+                'data': data, 'feature_parity': 'SEPARATE_GATE', 'pulse_requires_separate_verification': True}
     except Exception:
         # SDK messages can include URLs or credentials. Never send them to UI.
         return {'status': 'BLOCKED', 'reason': 'Mart read failed. Check the configured endpoint, credentials, table schema and column mapping.', 'data': None}

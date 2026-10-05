@@ -26,5 +26,8 @@
       "segment": "",
       "primary_reason": ""
     }
+  },
+  "pulse": {
+    "enabled": false
   }
 }

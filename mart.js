@@ -41,6 +41,7 @@
       html+='<p class="metric-note">Predicted risk is not observed churn. Retention outcomes, revenue and causal uplift are not supplied by this connection.</p>';
     }
     document.querySelector('#main').innerHTML=html;
+    window.SENTINEL_PULSE?.render(snapshot);
   }
   async function refresh(){
     if(!active||pending)return;
