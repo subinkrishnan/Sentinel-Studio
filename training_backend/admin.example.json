@@ -1,0 +1,33 @@
+{
+  "data_dir": "/absolute/path/COM01_v05_Workflow/COM01_Development_Benchmark_v05_COMPLETE",
+  "staging": {
+    "name": "com01_experiment_postpaid",
+    "version": "v0.5.0",
+    "feature_sql": ""
+  },
+  "mart": {
+    "enabled": false,
+    "mode": "dev_experiment",
+    "base_url": "https://dev.sentinel.inalpha.ai",
+    "allowed_hosts": [
+      "dev.sentinel.inalpha.ai"
+    ],
+    "table": "",
+    "business_line": "Postpaid",
+    "columns": {
+      "service_id": "service_instance_id",
+      "run_id": "scoring_run_id",
+      "as_of": "data_as_of_ts",
+      "probability": "churn_probability",
+      "risk_band": "risk_band",
+      "quality_gate": "quality_gate_status",
+      "publication_status": "run_status",
+      "model_version": "model_version",
+      "segment": "",
+      "primary_reason": ""
+    }
+  },
+  "pulse": {
+    "enabled": false
+  }
+}

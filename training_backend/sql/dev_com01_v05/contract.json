@@ -1,0 +1,55 @@
+{
+  "status": "PREPARED_NOT_DEPLOYED",
+  "namespace": "com01v05_0fb5f846_",
+  "source_manifest_sha256": "0fb5f846e5eebb22a87267e94083913f444bb3ceb83e48cbd6c396ab65441ce9",
+  "frozen_sql_sha256": "e577ccaebc8c58dfad44d3c78a328690009c7ac0339c0a24af685d30a81a486b",
+  "dev_sql_sha256": "19e2ec0a41b4e6c947f3ee01ebd3e9066b61031d15af679dda9ee5d839f0a5c0",
+  "feature_contract": "COM01_LOCAL_SYNTHETIC_15F_V05",
+  "source_mapping": {
+    "tmform_a_contract_detail": "public.bronze__com01v05_0fb5f846_tmform_a_contract_detail",
+    "tmform_a_customer_account": "public.bronze__com01v05_0fb5f846_tmform_a_customer_account",
+    "tmform_a_service_instance": "public.bronze__com01v05_0fb5f846_tmform_a_service_instance",
+    "tmform_a_service_status_history": "public.bronze__com01v05_0fb5f846_tmform_a_service_status_history",
+    "tmform_d_usage_event": "public.bronze__com01v05_0fb5f846_tmform_d_usage_event",
+    "tmform_e_invoice": "public.bronze__com01v05_0fb5f846_tmform_e_invoice",
+    "tmform_e_invoice_balance_history": "public.bronze__com01v05_0fb5f846_tmform_e_invoice_balance_history",
+    "tmform_e_payment_transaction": "public.bronze__com01v05_0fb5f846_tmform_e_payment_transaction",
+    "tmform_f_complaint": "public.bronze__com01v05_0fb5f846_tmform_f_complaint",
+    "tmform_f_customer_interaction": "public.bronze__com01v05_0fb5f846_tmform_f_customer_interaction",
+    "tmform_j_product_order": "public.bronze__com01v05_0fb5f846_tmform_j_product_order",
+    "tmform_k_service_impact_event": "public.bronze__com01v05_0fb5f846_tmform_k_service_impact_event",
+    "tmform_m_digital_session": "public.bronze__com01v05_0fb5f846_tmform_m_digital_session"
+  },
+  "coverage_relation": "public.silver__com01v05_0fb5f846_source_coverage",
+  "coverage_columns": {
+    "source_table": "text",
+    "population_scope": "text",
+    "history_start": "timestamptz",
+    "complete_through": "timestamptz"
+  },
+  "coverage_key": [
+    "source_table",
+    "population_scope"
+  ],
+  "coverage_scope": "COM01",
+  "coverage_source_names": [
+    "tmform_a_contract_detail",
+    "tmform_a_customer_account",
+    "tmform_a_service_instance",
+    "tmform_a_service_status_history",
+    "tmform_d_usage_event",
+    "tmform_e_invoice",
+    "tmform_e_invoice_balance_history",
+    "tmform_e_payment_transaction",
+    "tmform_f_complaint",
+    "tmform_f_customer_interaction",
+    "tmform_j_product_order",
+    "tmform_k_service_impact_event",
+    "tmform_m_digital_session"
+  ],
+  "coverage_fixture_is_attestation": false,
+  "as_of": null,
+  "live_content_parity": "PENDING",
+  "live_feature_parity": "PENDING",
+  "production_publication_allowed": false
+}
